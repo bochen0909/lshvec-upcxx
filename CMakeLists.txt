@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.10)
 project(LSHVEC-UPCXX VERSION 0.1.0 LANGUAGES CXX)
 
 #specify the C++ standard
-set(CMAKE_STANDARD 11)
+set(CMAKE_STANDARD 14)
 set(CMAKE_STANDARD_REQUIRED True)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -45,7 +45,7 @@ if(BUILD_LSHVEC_UPCXX)
 
  
 	add_executable(kgraph_upcxx
-		src/make_kgraph_upcxx.cpp 
+		src/trainer.cpp 
 		src/log.cpp src/utils.cpp
 		)
  
@@ -66,11 +66,19 @@ if(BUILD_LSHVEC_UPCXX)
 endif()
 
 ############# unit test ###########################
+include_directories( "${LOCAL_EXT_PREFIX_DIR}/include")
 add_executable(test_utils src/test_utils.cpp src/utils.cpp)
 add_executable(test_kmer src/test_kmer.cpp src/utils.cpp src/kmer.cpp)
+
 add_executable(test_read_fasta src/test_read_fasta.cpp src/utils.cpp src/io.cpp)
 add_dependencies(test_read_fasta spdloglib gzstreamlib)
 target_include_directories(test_read_fasta PUBLIC   "${LOCAL_EXT_PREFIX_DIR}/include" )
 target_link_libraries(test_read_fasta PUBLIC spdlog gzstream ZLIB::ZLIB  )
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data/knucleotide.fasta DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data/knucleotide.fasta.gz  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+
+find_package(OpenMP REQUIRED)
+include_directories("${OpenMP_CXX_FLAGS}")
+add_executable(test_hash src/test_hash.cpp src/CRandProj.cpp src/utils.cpp )
+target_link_libraries( test_hash  OpenMP::OpenMP_CXX )

@@ -11,6 +11,7 @@
 #include <sstream>
 #include <fstream>
 #include <vector>
+#include <thread>
 #include <cstring>
 #include <set>
 #include <map>
@@ -28,6 +29,17 @@
 #include <arpa/inet.h>
 
 namespace sparc {
+
+uint32_t get_number_of_thread()
+{
+        auto processor_count = std::thread::hardware_concurrency();
+        if (processor_count == 0)
+        {
+                processor_count = 1;
+        }
+        return processor_count;
+}
+
 
 std::string get_env(const std::string &var) {
 	const char *val = std::getenv(var.c_str());
@@ -262,4 +274,17 @@ uint32_t hash_string(const std::string &s) {
 	}
 }
 
+	namespace myrand
+	{
+			static std::random_device rd;
+			std::mt19937 gen(rd());
+			std::uniform_real_distribution<> dis(0, 1);
+
+			void seed(uint32_t s)
+			{
+					gen.seed(s);
+			}
+
+ 
+	} //end namespace myrand
 }

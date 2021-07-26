@@ -17,6 +17,8 @@
 
 namespace sparc {
 
+uint32_t get_number_of_thread();
+
 std::string get_env(const std::string &var);
 
 std::string get_working_dir();
@@ -109,6 +111,29 @@ void split_not_thread_safe(std::vector<std::string> &arr, std::string str,
 std::string get_ip_adderss();
 
 std::string get_ip_adderss(const std::string &hostname);
+
+namespace myrand
+{
+
+        extern std::mt19937 gen;
+
+        extern std::uniform_real_distribution<> dis;
+
+        void seed(uint32_t s);
+
+        template <typename T>
+        inline T uniform()
+        {
+                return dis(gen);
+        }
+
+        template <typename T>
+        inline void shuffle(std::vector<T> &v)
+        {
+                std::shuffle(v.begin(), v.end(), gen);
+        }
+}
+
 
 }
 #endif /* UTILS_H_ */
