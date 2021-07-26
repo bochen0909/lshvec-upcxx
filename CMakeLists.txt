@@ -45,7 +45,7 @@ if(BUILD_LSHVEC_UPCXX)
 
  
 	add_executable(kgraph_upcxx
-		src/trainer.cpp 
+		src/trainer_main.cpp 
 		src/log.cpp src/utils.cpp
 		)
  
@@ -90,3 +90,6 @@ find_package(OpenMP REQUIRED)
 include_directories("${OpenMP_CXX_FLAGS}")
 add_executable(test_hash src/test_hash.cpp src/CRandProj.cpp src/utils.cpp )
 target_link_libraries( test_hash  OpenMP::OpenMP_CXX )
+
+
+add_executable(test_random_model src/test_random_model.cpp  src/utils.cpp )
