@@ -1,0 +1,42 @@
+
+########## external project ##################
+
+include(ExternalProject)
+
+
+ExternalProject_Add(gzstreamlib
+  PREFIX ${PROJECT_SOURCE_DIR}/extlib
+  URL ${PROJECT_SOURCE_DIR}/extlib/gzstream.tgz
+  INSTALL_DIR ${LOCAL_EXT_PREFIX_DIR}
+  BUILD_IN_SOURCE 1
+  CONFIGURE_COMMAND  "" 
+  BUILD_COMMAND  make 
+  INSTALL_COMMAND  mkdir -p <INSTALL_DIR>/include && mkdir -p <INSTALL_DIR>/lib && cp gzstream.h <INSTALL_DIR>/include && cp libgzstream.a <INSTALL_DIR>/lib
+  )
+set_target_properties(gzstreamlib PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+  
+ExternalProject_Add(spdloglib
+  PREFIX ${PROJECT_SOURCE_DIR}/extlib
+  GIT_REPOSITORY https://github.com/gabime/spdlog.git
+  GIT_TAG v1.7.0
+  INSTALL_DIR ${PROJECT_SOURCE_DIR}/extlib/local
+  BUILD_IN_SOURCE 1
+  CONFIGURE_COMMAND  "" 
+  BUILD_COMMAND  mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>  ..  
+  INSTALL_COMMAND  cd build && make install 
+  )
+set_target_properties(spdloglib PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+ExternalProject_Add(tsl_robin_map_lib
+  PREFIX ${PROJECT_SOURCE_DIR}/extlib
+  GIT_REPOSITORY https://github.com/Tessil/robin-map.git
+  GIT_TAG v0.6.3
+  INSTALL_DIR ${PROJECT_SOURCE_DIR}/extlib/local
+  BUILD_IN_SOURCE 1
+  CONFIGURE_COMMAND  "" 
+  BUILD_COMMAND  mkdir -p build && cd build && cmake -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>  ..  
+  INSTALL_COMMAND  cd build && make install 
+  )
+set_target_properties(tsl_robin_map_lib PROPERTIES EXCLUDE_FROM_ALL TRUE)
+        

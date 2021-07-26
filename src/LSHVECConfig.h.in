@@ -1,0 +1,4 @@
+// the configured options and settings
+#define AMNG_VERSION_MAJOR @AMNG_VERSION_MAJOR@
+#define AMNG_VERSION_MINOR @AMNG_VERSION_MINOR@
+#define AMNG_VERSION_PATCH @AMNG_VERSION_PATCH@
