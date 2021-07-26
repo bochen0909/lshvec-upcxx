@@ -65,6 +65,14 @@ if(BUILD_LSHVEC_UPCXX)
 	
 endif()
 
+
+find_package(OpenMP REQUIRED)
+find_package(ZLIB REQUIRED)
+include_directories("${OpenMP_CXX_FLAGS}")
+add_executable(hash src/hasher_main.cpp src/CRandProj.cpp src/utils.cpp src/kmer.cpp src/io.cpp)
+target_link_libraries(hash PUBLIC spdlog gzstream ZLIB::ZLIB  OpenMP::OpenMP_CXX)
+
+
 ############# unit test ###########################
 include_directories( "${LOCAL_EXT_PREFIX_DIR}/include")
 add_executable(test_utils src/test_utils.cpp src/utils.cpp)
