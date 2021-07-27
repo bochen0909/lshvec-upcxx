@@ -3,38 +3,64 @@
 #include <string>
 #include <algorithm>
 
-#include "acutest.h"
 #include "io.h"
+
+#define CATCH_CONFIG_MAIN
+#include "catch.hpp"
 
 using namespace std;
 
-#define TEST_INT_EQUAL(a, b)       \
-	TEST_CHECK((a) == (b));        \
-	TEST_MSG("Expected: %d", (a)); \
-	TEST_MSG("Produced: %d", (b));
-
-#define TEST_DOUBLE_EQUAL(a, b)              \
-	TEST_CHECK(std::abs((a) - (b)) < 1e-10); \
-	TEST_MSG("Expected: %f", (double)(a));   \
-	TEST_MSG("Produced: %f", (double)(b));
-
-#define TEST_STR_EQUAL(a, b)            \
-	TEST_CHECK(string(a) == string(b)); \
-	TEST_MSG("Expected: %s", (a));      \
-	TEST_MSG("Produced: %s", (b));
-
-void test_read(void)
+TEST_CASE("read fasta file", "[fasta]")
 {
 	for (auto &filepath : {"knucleotide.fasta", "knucleotide.fasta.gz"})
 	{
 		auto v = read_fasta(filepath);
-		TEST_INT_EQUAL(v.size(), 3);
-		TEST_INT_EQUAL(v[0].seq.size(), 50000);
-		TEST_INT_EQUAL(v[1].seq.size(), 75000);
-		TEST_INT_EQUAL(v[2].seq.size(), 125000);
+		REQUIRE(v.size() == 3);
+		REQUIRE(v[0].seq.size() == 50000);
+		REQUIRE(v[1].seq.size() == 75000);
+		REQUIRE(v[2].seq.size() == 125000);
 	}
 }
 
-TEST_LIST = {{"test_read", test_read},
+TEST_CASE("read fasta using stream", "[fasta]")
+{
+	for (auto &filepath : {"sample.fa", "sample.fa.gz"})
+	{
+		FastaTextReaderBase reader(filepath);
+		std::vector<FastaRecord> v;
+		while (true)
+		{
+			FastaRecord r = reader.next();
+			if (r.id.empty())
+			{
+				break;
+			}
+			v.push_back(r);
+		}
+		REQUIRE(v.size() == 2);
+		REQUIRE(v[0].seq.size() == 351);
+		REQUIRE(v[1].seq.size() == 300);
+	}
+}
 
-			 {NULL, NULL}};
+TEST_CASE("read fasta using batch", "[fasta]")
+{
+
+	BatchReader<FastaTextReaderBase, FastaRecord> reader({"sample.fa", "sample.fa.gz"});
+
+	std::vector<FastaRecord> V;
+	while (true)
+	{
+		std::vector<FastaRecord> v = reader.next(1);
+		if (v.empty())
+		{
+			break;
+		}
+		V.insert(V.end(), v.begin(), v.end());
+	}
+	REQUIRE(V.size() == 4);
+	REQUIRE(V[0].seq.size() == 351);
+	REQUIRE(V[1].seq.size() == 300);
+	REQUIRE(V[2].seq.size() == 351);
+	REQUIRE(V[3].seq.size() == 300);
+}

@@ -27,15 +27,7 @@ void read_fasta(STREAM &file, std::vector<FastaRecord> &recrods)
 		}
 		else
 		{ //seq
-			std::transform(line.begin(), line.end(), line.begin(), [](char c)
-						   {
-							   c = (char)::toupper(c);
-							   if (c != 'A' && c != 'C' && c != 'G' && c != 'T')
-							   {
-								   c = 'N';
-							   }
-							   return c;
-						   });
+			transform_seq(line);
 			if (r.id.empty())
 			{
 				throw std::runtime_error("found fasta data without finding header first");
@@ -68,4 +60,11 @@ std::vector<FastaRecord> read_fasta(const std::string &filepath)
 		read_fasta(file, records);
 	}
 	return records;
+}
+
+
+template<>
+bool record_is_valid(const FastaRecord &t)
+{
+    return !t.id.empty();
 }

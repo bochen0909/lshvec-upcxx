@@ -17,6 +17,8 @@
 
 namespace sparc {
 
+bool file_exists(const char *filename);
+
 uint32_t get_number_of_thread();
 
 std::string get_env(const std::string &var);

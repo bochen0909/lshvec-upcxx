@@ -79,11 +79,13 @@ add_executable(test_utils src/test_utils.cpp src/utils.cpp)
 add_executable(test_kmer src/test_kmer.cpp src/utils.cpp src/kmer.cpp)
 
 add_executable(test_read_fasta src/test_read_fasta.cpp src/utils.cpp src/io.cpp)
-add_dependencies(test_read_fasta spdloglib gzstreamlib)
+add_dependencies(test_read_fasta spdloglib gzstreamlib bitserylib)
 target_include_directories(test_read_fasta PUBLIC   "${LOCAL_EXT_PREFIX_DIR}/include" )
 target_link_libraries(test_read_fasta PUBLIC spdlog gzstream ZLIB::ZLIB  )
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data/knucleotide.fasta DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data/knucleotide.fasta.gz  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data/sample.fa.gz  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data/sample.fa  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 
 find_package(OpenMP REQUIRED)
