@@ -62,9 +62,14 @@ std::vector<FastaRecord> read_fasta(const std::string &filepath)
 	return records;
 }
 
-
-template<>
+template <>
 bool record_is_valid(const FastaRecord &t)
 {
-    return !t.id.empty();
+	return !t.id.empty();
+}
+
+template <>
+bool record_is_valid(const std::string &t)
+{
+	return !t.empty();
 }

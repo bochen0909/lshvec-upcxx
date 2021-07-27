@@ -39,13 +39,15 @@ T create_empty_record()
 }
 
 template <typename T>
-bool record_is_valid(const T &t)
+bool record_is_valid(const T &)
 {
-    return false;
+    throw std::runtime_error("NA");
 }
 
 template<>
 bool record_is_valid(const FastaRecord &t);
+template<>
+bool record_is_valid(const std::string &t);
 
 std::vector<FastaRecord> read_fasta(const std::string &filepath);
 
@@ -318,7 +320,7 @@ public:
         }
         FastaRecord ret;
         ret.id = lines[0];
-        ret.seq = line[2];
+        ret.seq = lines[1];
         transform_seq(ret.seq);
         return ret;
     }
