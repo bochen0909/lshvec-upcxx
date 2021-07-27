@@ -72,8 +72,15 @@ include_directories("${OpenMP_CXX_FLAGS}")
 add_executable(hash src/hasher_main.cpp src/CRandProj.cpp src/utils.cpp src/kmer.cpp src/io.cpp)
 target_link_libraries(hash PUBLIC spdlog gzstream ZLIB::ZLIB  OpenMP::OpenMP_CXX)
 
+################# lshvec ############################
+find_package(OpenMP REQUIRED)
+add_executable(lshvec src/lshvec_main.cpp src/utils.cpp src/io.cpp src/log.cpp src/CRandProj.cpp src/kmer.cpp)
+add_dependencies(lshvec spdloglib gzstreamlib bitserylib)
+target_include_directories(lshvec PUBLIC   "${LOCAL_EXT_PREFIX_DIR}/include" )
+target_link_libraries(lshvec PUBLIC spdlog gzstream ZLIB::ZLIB OpenMP::OpenMP_CXX)
 
-############# unit test ###########################
+
+############### unit test ###########################
 include_directories( "${LOCAL_EXT_PREFIX_DIR}/include")
 add_executable(test_utils src/test_utils.cpp src/utils.cpp)
 add_executable(test_kmer src/test_kmer.cpp src/utils.cpp src/kmer.cpp)

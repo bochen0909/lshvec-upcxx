@@ -44,9 +44,9 @@ bool record_is_valid(const T &)
     throw std::runtime_error("NA");
 }
 
-template<>
+template <>
 bool record_is_valid(const FastaRecord &t);
-template<>
+template <>
 bool record_is_valid(const std::string &t);
 
 std::vector<FastaRecord> read_fasta(const std::string &filepath);
@@ -368,16 +368,20 @@ protected:
     }
 };
 
-class SeqTextReaderBase : public LineTextReaderBase<std::string>
+class SeqTextReaderBase : public LineTextReaderBase<FastaRecord>
 {
 public:
-    SeqTextReaderBase(const std::string &filepath) : LineTextReaderBase<std::string>(filepath) {}
+    SeqTextReaderBase(const std::string &filepath) : LineTextReaderBase<FastaRecord>(filepath) {}
 
 protected:
-    virtual void line_to_record(const std::string &line, std::string &ret)
+    virtual void line_to_record(const std::string &line, FastaRecord &ret)
     {
-        ret = line;
-        transform_seq(ret);
+        if (!line.empty())
+        {
+            ret.id = ">useless";
+            ret.seq = line;
+            transform_seq(ret.seq);
+        }
     }
 };
 
