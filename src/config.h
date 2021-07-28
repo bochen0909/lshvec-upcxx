@@ -12,8 +12,8 @@
 #include <string>
 #include "log.h"
 
-
-struct BaseConfig {
+struct BaseConfig
+{
 
 	std::string program;
 	std::vector<std::string> inputpath;
@@ -29,43 +29,63 @@ struct BaseConfig {
 	std::vector<int> hash_rank_mapping;
 	std::vector<std::string> peers_hosts;
 
-	std::string backend="upcxx";
+	std::string backend = "upcxx";
 
-	void print() {
+	void print()
+	{
 		myinfo("config: program=%s", program.c_str());
 		myinfo("config: backend=%s", backend.c_str());
 		myinfo("config: zip_output=%d", zip_output ? 1 : 0);
-		for (size_t i = 0; i < inputpath.size(); i++) {
+		for (size_t i = 0; i < inputpath.size(); i++)
+		{
 			myinfo("config: inputpath[%d]=%s", i, inputpath.at(i).c_str());
 		}
 		myinfo("config: outputpath=%s", outputpath.c_str());
 		myinfo("config: scratch_dir=%s", scratch_dir.c_str());
 		myinfo("config: #procs=%d", nprocs);
 	}
-	std::string get_dbpath() {
+	std::string get_dbpath()
+	{
 		return get_dbpath(0);
 	}
-	std::string get_dbpath(int h) {
+	std::string get_dbpath(int h)
+	{
 		char tmp[2048];
 		sprintf(tmp, "%s/part_h%d_r%d.db", scratch_dir.c_str(), h, rank);
 		return tmp;
 	}
-	std::string get_my_output() {
-		return get_my_output(0);
-	}
-	std::string get_my_output(int h) {
+	std::string get_my_output(bool is_text = true)
+	{
 		char tmp[2048];
-		if (zip_output) {
-			sprintf(tmp, "%s/part_h%d_r%d.txt.gz", outputpath.c_str(), h, rank);
-		} else {
-			sprintf(tmp, "%s/part_h%d_r%d.txt", outputpath.c_str(), h, rank);
+		if (zip_output)
+		{
+			sprintf(tmp, "%s/part_r%06d.%s.gz", outputpath.c_str(), rank, is_text ? "txt" : "bin");
+		}
+		else
+		{
+			sprintf(tmp, "%s/part_r%06d.%s", outputpath.c_str(), rank, is_text ? "txt" : "bin");
 		}
 		return tmp;
 	}
-	int get_my_port() {
+	std::string get_my_output(int h, bool is_text = true)
+	{
+		char tmp[2048];
+		if (zip_output)
+		{
+			sprintf(tmp, "%s/part_h%06d_r%06d.%s.gz", outputpath.c_str(), h, rank, is_text ? "txt" : "bin");
+		}
+		else
+		{
+			sprintf(tmp, "%s/part_h%06d_r%06d.%s", outputpath.c_str(), h, rank, is_text ? "txt" : "bin");
+		}
+		return tmp;
+	}
+	int get_my_port()
+	{
 		return get_my_port(0);
 	}
-	int get_my_port(int h) {
+	int get_my_port(int h)
+	{
 		return port + h * nprocs + rank;
 	}
 };

@@ -52,6 +52,32 @@ void save_vector(uint32_t this_epoch, const std::string &output_prefix, SingleNo
         output.flush();
     }
 }
+
+void save_wordcounts(uint32_t this_epoch, const std::string &output_prefix, SingleNodeModel<float> &model, bool zip_output)
+{
+    char txt[1024];
+    sprintf(txt, "%s_%u.wc.txt", output_prefix.c_str(), this_epoch);
+    std::string filepath = txt;
+    if (zip_output)
+    {
+        filepath += ".gz";
+    }
+
+    if (zip_output)
+    {
+        ogzstream output(filepath.c_str());
+        model.write_word_count(output);
+        output.flush();
+    }
+    else
+    {
+        std::ofstream output(txt, std::ios::binary | std::ios::trunc);
+        model.write_word_count(output);
+        output.flush();
+    }
+}
+
+
 void save_vector_bin(uint32_t this_epoch, const std::string &output_prefix, SingleNodeModel<float> &model, bool zip_output)
 {
     char txt[1024];

@@ -446,6 +446,15 @@ public:
         }
     }
 
+    template <typename OS>
+    void write_word_count(OS &output)
+    {
+        for (size_t i = 0; i < word_count.size(); i++)
+        {
+            output << i << " " << word_count.at(i) << "\n";
+        }
+    }
+
     void write_vec_bin(bitsery::OutputStreamAdapter &bw)
     {
         write(bw, wi_);

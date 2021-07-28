@@ -42,10 +42,11 @@ namespace rpns
 		int get_kmer_size();
 		int get_hash_size();
 		static void seq_encoding(const std::string &seq, std::vector<std::complex<double>> &mat);
+		bool is_defined();
 
 	protected:
 		void clear();
-		bool is_defined();
+	
 
 		std::vector<std::complex<double>> &multiply(
 			const std::vector<std::complex<double>> &x,

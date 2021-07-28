@@ -17,14 +17,14 @@ public:
 	virtual void randomize_init() {}
 
 protected:
-	virtual void incr_word_count(uint32_t word) {}
-	virtual void add_grad_to_wi(const Vector<VALUE_TYPE> &grad, uint32_t word, float a)
+	virtual void incr_word_count(uint32_t) {}
+	virtual void add_vector_to_wi(const Vector<VALUE_TYPE> &, uint32_t, float)
 	{
 	}
-	virtual void add_grad_to_wo(const Vector<VALUE_TYPE> &grad, uint32_t word, float a)
+	virtual void add_vector_to_wo(const Vector<VALUE_TYPE> &, uint32_t, float)
 	{
 	}
-	virtual uint32_t getNegative(uint32_t target)
+	virtual uint32_t getNegative(uint32_t)
 	{
 		return 1;
 	}

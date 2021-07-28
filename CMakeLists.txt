@@ -44,14 +44,15 @@ if(BUILD_LSHVEC_UPCXX)
 	link_directories( "${LOCAL_EXT_PREFIX_DIR}/lib64" )
 
  
-	add_executable(kgraph_upcxx
-		src/trainer_main.cpp 
+	add_executable(train_upcxx
+		src/train_upcxx_main.cpp 
 		src/log.cpp src/utils.cpp
+		src/kmer.cpp src/CRandProj.cpp
 		)
  
 
 						
-	foreach(EXEC  kgraph_upcxx )
+	foreach(EXEC  train_upcxx )
 		add_dependencies(${EXEC} spdloglib gzstreamlib)
 		target_include_directories(${EXEC} PUBLIC ${UPCXX_INCLUDE_DIRS} "${LOCAL_EXT_PREFIX_DIR}/include" )
 		target_compile_definitions(${EXEC} PUBLIC ${UPCXX_DEFINITIONS})
