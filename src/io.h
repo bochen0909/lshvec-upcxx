@@ -461,4 +461,49 @@ protected:
     }
 };
 
+template <typename T>
+inline void write(bitsery::OutputStreamAdapter &bw, T val)
+{
+
+    bw.writeBytes<sizeof(T)>(val);
+}
+
+template <>
+inline void write(bitsery::OutputStreamAdapter &bw, double val)
+{
+    char *byteArray = reinterpret_cast<char *>(&val);
+    for (uint32_t i = 0; i < sizeof(double); i++)
+    {
+        bw.writeBytes<sizeof(char)>(byteArray[i]);
+    }
+}
+
+template <>
+inline void write(bitsery::OutputStreamAdapter &bw, float val)
+{
+    char *byteArray = reinterpret_cast<char *>(&val);
+    for (uint32_t i = 0; i < sizeof(float); i++)
+    {
+        bw.writeBytes<sizeof(char)>(byteArray[i]);
+    }
+}
+
+template <>
+inline void write(bitsery::OutputStreamAdapter &bw, bool val)
+{
+    int b = val ? 1 : 0;
+    write(bw, b);
+}
+
+template <typename T>
+inline void write(bitsery::OutputStreamAdapter &bw, std::vector<T> val)
+{
+    size_t n = val.size();
+    write(bw, n);
+    for (auto &x : val)
+    {
+        write(bw, x);
+    }
+}
+
 #endif

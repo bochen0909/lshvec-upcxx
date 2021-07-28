@@ -10,14 +10,30 @@
 
 #include <vector>
 #include <cmath>
+#include <iomanip>
 #include "static_block.hpp"
 #include "utils.h"
+#include "io.h"
 template <typename VALUE_TYPE>
 class Vector
 {
     std::vector<VALUE_TYPE> val;
 
 public:
+    void write_me(bitsery::OutputStreamAdapter &bw) const
+    {
+        write(bw, val);
+    }
+    template <typename OS>
+    void write_me(OS &output)
+    {
+        for (size_t i = 0; i < val.size() - 1; i++)
+        {
+            output << std::fixed << std::setprecision(6) << val[i] << " ";
+        }
+        output << std::fixed << std::setprecision(6) << val[val.size() - 1] << "\n";
+    }
+
     Vector(uint32_t dim)
     {
         val.resize(dim);
@@ -88,6 +104,12 @@ public:
     }
 };
 
+template <typename VALUE_TYPE>
+inline void write(bitsery::OutputStreamAdapter &bw, const Vector<VALUE_TYPE> &val)
+{
+    val.write_me(bw);
+}
+
 static int MAX_SIGMOID = 8;
 static int SIGMOID_TABLE_SIZE = 512;
 static int LOG_TABLE_SIZE = 512;
@@ -126,7 +148,13 @@ protected:
     uint32_t dim;
     uint32_t neg_size;
 
-private:
+public:
+    void write_me(bitsery::OutputStreamAdapter &bw) const
+    {
+        write(bw, dim);
+        write(bw, neg_size);
+    }
+
 public:
     OneSampleUpdator(uint32_t dim, uint32_t neg_size) : dim(dim), neg_size(neg_size)
     {
@@ -259,6 +287,14 @@ protected:
     uint32_t half_window;
 
 public:
+    void write_me(bitsery::OutputStreamAdapter &bw) const
+    {
+        OneSampleUpdator<VALUE_TYPE>::write_me(bw);
+        write(bw, use_cbow);
+        write(bw, half_window);
+    }
+
+public:
     Model(uint32_t dim, uint32_t neg_size, bool use_cbow, uint32_t half_window) : OneSampleUpdator<VALUE_TYPE>(dim, neg_size), use_cbow(use_cbow), half_window(half_window)
     {
     }
@@ -328,6 +364,25 @@ protected:
     std::vector<uint32_t> word_count;
 
 public:
+    void write_me(bitsery::OutputStreamAdapter &bw) const
+    {
+        Model<VALUE_TYPE>::write_me(bw);
+        write(bw, num_word);
+        write(bw, wo_);
+        write(bw, wi_);
+        write(bw, word_count);
+    }
+
+    template <typename OS>
+    void write_vec(OS &output)
+    {
+        for (auto &x : wi_)
+        {
+            x.write_me(output);
+        }
+    }
+
+public:
     SingleNodeModel(uint32_t num_word, uint32_t dim, uint32_t neg_size, bool use_cbow, uint32_t half_window) : Model<VALUE_TYPE>(dim, neg_size, use_cbow, half_window), num_word(num_word)
     {
         for (uint32_t i = 0; i < num_word; i++)
@@ -389,4 +444,11 @@ protected:
         return wo_.at(word);
     }
 };
+
+template <typename VALUE_TYPE>
+void write(bitsery::OutputStreamAdapter &bw, const SingleNodeModel<VALUE_TYPE> &obj)
+{
+    obj.write_me(bw);
+}
+
 #endif /* SOURCE_DIRECTORY__SRC_SPARC_MODEL_H_ */

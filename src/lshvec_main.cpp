@@ -17,6 +17,7 @@ struct Config : public BaseConfig
     uint32_t half_window;
     size_t num_seq;
     std::string hash_file;
+    std::string output_prefix;
     bool use_cbow = true;
     bool is_fasta = false;
     bool is_fastq = false;
@@ -30,6 +31,7 @@ struct Config : public BaseConfig
         myinfo("config: neg_size=%ld", neg_size);
         myinfo("config: half_window=%ld", half_window);
         myinfo("config: hash_file=%s", hash_file.c_str());
+        myinfo("config: output_prefix=%s", output_prefix.c_str());
         myinfo("config: use_cbow=%s", use_cbow ? "true" : "false");
     }
 };
@@ -171,13 +173,66 @@ int main(int argc, char **argv)
         }
     }
 
-    std::string output_prefix = args["output"].as<std::string>("model");
+    config.output_prefix = args["output"].as<std::string>("model");
     config.print();
 
     run(config);
 
     return 0;
 }
+
+void save_model(uint32_t this_epoch, Config &config, SingleNodeModel<float> &model)
+{
+    char txt[1024];
+    sprintf(txt, "%s_%u.bin", config.output_prefix.c_str(), this_epoch);
+    std::string filepath = txt;
+    if (config.zip_output)
+    {
+        filepath += ".gz";
+    }
+
+    if (config.zip_output)
+    {
+        ogzstream output(filepath.c_str());
+        bitsery::OutputStreamAdapter bw{output};
+        write(bw, this_epoch);
+        write(bw, model);
+        output.flush();
+    }
+    else
+    {
+        std::ofstream output(txt, std::ios::binary | std::ios::trunc);
+        bitsery::OutputStreamAdapter bw{output};
+        write(bw, this_epoch);
+        write(bw, model);
+        output.flush();
+    }
+}
+
+void save_vector(uint32_t this_epoch, Config &config, SingleNodeModel<float> &model)
+{
+    char txt[1024];
+    sprintf(txt, "%s_%u.vec", config.output_prefix.c_str(), this_epoch);
+    std::string filepath = txt;
+    if (config.zip_output)
+    {
+        filepath += ".gz";
+    }
+
+    if (config.zip_output)
+    {
+        ogzstream output(filepath.c_str());
+        model.write_vec(output);
+        output.flush();
+    }
+    else
+    {
+        std::ofstream output(txt);
+        model.write_vec(output);
+        output.flush();
+    }
+}
+
 template <class BR>
 void run_epoch(uint32_t this_epoch, Config &config, BR &reader, SingleNodeModel<float> &model, rpns::CRandProj &hash, float learning_rate)
 {
@@ -195,6 +250,7 @@ void run_epoch(uint32_t this_epoch, Config &config, BR &reader, SingleNodeModel<
     while (true)
     {
         std::vector<FastaRecord> v = reader.next(batchsize);
+        sparc::shuffle(v);
         num_of_seq += v.size();
         if (v.empty())
         {
@@ -275,4 +331,7 @@ void run(Config &config)
             run_epoch(i, config, reader, model, hash, learning_rate);
         }
     }
+
+    save_model(config.epoch - 1, config, model);
+    save_vector(config.epoch - 1, config, model);
 }
