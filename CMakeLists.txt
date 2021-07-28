@@ -79,7 +79,7 @@ add_dependencies(train spdloglib gzstreamlib bitserylib)
 target_include_directories(train PUBLIC   "${LOCAL_EXT_PREFIX_DIR}/include" )
 target_link_libraries(train PUBLIC spdlog gzstream ZLIB::ZLIB OpenMP::OpenMP_CXX)
 
-add_executable(transform src/transform_main.cpp src/utils.cpp src/io.cpp src/log.cpp src/CRandProj.cpp src/kmer.cpp)
+add_executable(transform src/transform_main.cpp src/serialization.cpp src/utils.cpp src/io.cpp src/log.cpp src/CRandProj.cpp src/kmer.cpp)
 add_dependencies(transform spdloglib gzstreamlib bitserylib)
 target_include_directories(transform PUBLIC   "${LOCAL_EXT_PREFIX_DIR}/include" )
 target_link_libraries(transform PUBLIC spdlog gzstream ZLIB::ZLIB OpenMP::OpenMP_CXX)

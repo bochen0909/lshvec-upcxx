@@ -39,10 +39,15 @@ public:
         output << std::fixed << std::setprecision(6) << val[val.size() - 1] << "\n";
     }
 
+    Vector()
+    {
+    }
+
     Vector(uint32_t dim)
     {
         val.resize(dim);
     }
+
     void randomize()
     {
 

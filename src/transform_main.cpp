@@ -5,6 +5,7 @@
 #include "kmer.h"
 #include "io.h"
 #include "model.h"
+#include "serialization.h"
 #include "config.h"
 #include "pbar.h"
 
@@ -145,23 +146,18 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void read_model(const std::string &modelpath, SingleNodeModel<float> &model)
+void transform(const std::vector<uint32_t> &kmers, const std::vector<Vector<float>> &vecbin, Vector<float> &vec)
 {
-    uint32_t this_epoch;
-    if (sparc::endswith(modelpath, ".gz"))
+    vec.zero();
+    if (kmers.empty())
     {
-        ogzstream input(modelpath.c_str());
-        bitsery::InputStreamAdapter br(input);
-        read(br, this_epoch);
-        model.read_me(br);
+        return;
     }
-    else
+    for (uint32_t kmer : kmers)
     {
-        std::ifstream input(modelpath, std::ios::binary);
-        bitsery::InputStreamAdapter br(input);
-        read(br, this_epoch);
-        model.read_me(br);
+        vec.add(vecbin.at(kmer));
     }
+    vec.mul(1.0f / kmers.size());
 }
 
 template <typename BR, typename OS>
@@ -169,14 +165,13 @@ void run(Config &config, BR &reader, rpns::CRandProj &hash, OS &os)
 {
 
     std::string modelpath = config.model_path;
-    SingleNodeModel<float> model;
-    myinfo("reading model from %s\n", modelpath.c_str());
-    read_model(modelpath, model);
-    myinfo("finish reading model from %s\n", modelpath.c_str());
+    myinfo("reading vectors from %s\n", modelpath.c_str());
+    std::vector<Vector<float>> wi;
+    read_vec_bin(modelpath, wi);
+    myinfo("finish reading vectors from %s\n", modelpath.c_str());
 
     uint32_t batchsize = config.nprocs * 100;
     uint32_t kmer_size = hash.get_kmer_size();
-    uint32_t dim = model.get_dim();
     PUnknownBar ubar("transform:");
     size_t count = 0;
     while (true)
@@ -201,8 +196,8 @@ void run(Config &config, BR &reader, rpns::CRandProj &hash, OS &os)
             {
                 kmers.push_back(hash.hash(strkmer, false));
             }
-            Vector<float> vec(dim);
-            model.transform(kmers, vec);
+            Vector<float> vec;
+            transform(kmers, wi, vec);
             ubar.tick();
 #pragma omp critical
             V.push_back(vec);
