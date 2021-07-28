@@ -65,13 +65,15 @@ void save_vector_bin(uint32_t this_epoch, const std::string &output_prefix, Sing
     if (zip_output)
     {
         ogzstream output(filepath.c_str());
-        model.write_vec_bin(output);
+        bitsery::OutputStreamAdapter bw(output);
+        model.write_vec_bin(bw);
         output.flush();
     }
     else
     {
         std::ofstream output(txt, std::ios::binary | std::ios::trunc);
-        model.write_vec_bin(output);
+        bitsery::OutputStreamAdapter bw(output);
+        model.write_vec_bin(bw);
         output.flush();
     }
 }
@@ -80,7 +82,7 @@ void read_vec_bin(const std::string &binpath, std::vector<Vector<float>> &wi)
 {
     if (sparc::endswith(binpath, ".gz"))
     {
-        ogzstream input(binpath.c_str());
+        igzstream input(binpath.c_str());
         bitsery::InputStreamAdapter br(input);
         read(br, wi);
     }
@@ -97,7 +99,7 @@ void read_model(const std::string &modelpath, SingleNodeModel<float> &model)
     uint32_t this_epoch;
     if (sparc::endswith(modelpath, ".gz"))
     {
-        ogzstream input(modelpath.c_str());
+        igzstream input(modelpath.c_str());
         bitsery::InputStreamAdapter br(input);
         read(br, this_epoch);
         model.read_me(br);

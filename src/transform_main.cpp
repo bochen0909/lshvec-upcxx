@@ -83,7 +83,7 @@ int main(int argc, char **argv)
         return EXIT_SUCCESS;
     }
 
-    for (auto x : {"hash_file", "model_path"})
+    for (auto x : {"hash_file", "vec_path"})
         if (!args[x])
         {
             std::cerr << "ERROR: " << x << " is not set.\n";
@@ -168,7 +168,8 @@ void run(Config &config, BR &reader, rpns::CRandProj &hash, OS &os)
     myinfo("reading vectors from %s\n", modelpath.c_str());
     std::vector<Vector<float>> wi;
     read_vec_bin(modelpath, wi);
-    myinfo("finish reading vectors from %s\n", modelpath.c_str());
+    uint32_t dim = (uint32_t)wi.at(0).get_dim();
+    myinfo("finish reading %lu vectors[dim=%u] from %s\n", wi.size(), dim, modelpath.c_str());
 
     uint32_t batchsize = config.nprocs * 100;
     uint32_t kmer_size = hash.get_kmer_size();
@@ -196,7 +197,7 @@ void run(Config &config, BR &reader, rpns::CRandProj &hash, OS &os)
             {
                 kmers.push_back(hash.hash(strkmer, false));
             }
-            Vector<float> vec;
+            Vector<float> vec(dim);
             transform(kmers, wi, vec);
             ubar.tick();
 #pragma omp critical

@@ -20,6 +20,10 @@ class Vector
     std::vector<VALUE_TYPE> val;
 
 public:
+    size_t get_dim()
+    {
+        return val.size();
+    }
     void read_me(bitsery::InputStreamAdapter &br)
     {
         read(br, val);
@@ -442,13 +446,9 @@ public:
         }
     }
 
-    template <typename OS>
-    void write_vec_bin(OS &output)
+    void write_vec_bin(bitsery::OutputStreamAdapter &bw)
     {
-        for (auto &x : wi_)
-        {
-            x.write_me(output);
-        }
+        write(bw, wi_);
     }
 
 public:

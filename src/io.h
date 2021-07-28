@@ -548,9 +548,11 @@ inline void read(bitsery::InputStreamAdapter &br, std::vector<T> &val)
     size_t n;
 
     read(br, n);
-    for (auto &x : val)
+    for (size_t i = 0; i < n; i++)
     {
-        read(br, x);
+        T t;
+        read(br, t);
+        val.push_back(t);
     }
 }
 
