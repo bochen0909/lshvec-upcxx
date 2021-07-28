@@ -31,6 +31,21 @@ public:
         }
     }
 
+    void uniform()
+    {
+        float x = 1.0 / val.size();
+
+        for (size_t i = 0; i < val.size(); i++)
+        {
+            val[i] = x;
+        }
+    }
+
+    VALUE_TYPE at(size_t i)
+    {
+        return val.at(i);
+    }
+
     void zero()
     {
         for (size_t i = 0; i < val.size(); i++)
@@ -112,11 +127,8 @@ protected:
     uint32_t neg_size;
 
 private:
-    Vector<VALUE_TYPE> hidden_;
-    Vector<VALUE_TYPE> grad_;
-
 public:
-    OneSampleUpdator(uint32_t dim, uint32_t neg_size) : dim(dim), neg_size(neg_size), hidden_(dim), grad_(dim)
+    OneSampleUpdator(uint32_t dim, uint32_t neg_size) : dim(dim), neg_size(neg_size)
     {
     }
     virtual ~OneSampleUpdator()
@@ -125,8 +137,8 @@ public:
 
 protected:
     virtual void incr_word_count(uint32_t word) = 0;
-    virtual void add_grad_to_wi(const Vector<VALUE_TYPE> &grad, uint32_t word, float a) = 0;
-    virtual void add_grad_to_wo(const Vector<VALUE_TYPE> &grad, uint32_t word, float a) = 0;
+    virtual void add_vector_to_wi(const Vector<VALUE_TYPE> &v, uint32_t word, float a) = 0;
+    virtual void add_vector_to_wo(const Vector<VALUE_TYPE> &v, uint32_t word, float a) = 0;
     virtual uint32_t getNegative(uint32_t target) = 0;
     virtual Vector<VALUE_TYPE> get_vec_from_wi(uint32_t) = 0;
     virtual Vector<VALUE_TYPE> get_vec_from_wo(uint32_t) = 0;
@@ -142,19 +154,22 @@ protected:
         float loss = 0;
         if (true)
         {
-            computeHidden(words);
-            loss += negativeSampling(label, lr);
+            thread_local Vector<VALUE_TYPE> hidden_(dim);
+            thread_local Vector<VALUE_TYPE> grad_(dim);
+            computeHidden(words, hidden_);
+            loss += negativeSampling(label, lr, hidden_, grad_);
             for (auto word : words)
             {
-                add_grad_to_wi(grad_, word, 1.0f);
+                add_vector_to_wi(grad_, word, 1.0f);
             }
         }
         return loss;
     }
 
 private:
-    void computeHidden(const std::vector<uint32_t> &words)
+    void computeHidden(const std::vector<uint32_t> &words, Vector<VALUE_TYPE> &hidden_)
     {
+
         hidden_.zero();
         if (words.empty())
         {
@@ -170,7 +185,7 @@ private:
         hidden_.mul(1.0f / words.size());
     }
 
-    float negativeSampling(uint32_t target, float lr)
+    float negativeSampling(uint32_t target, float lr, Vector<VALUE_TYPE> &hidden_, Vector<VALUE_TYPE> &grad_)
     {
         float loss = 0.0f;
         grad_.zero();
@@ -178,24 +193,26 @@ private:
         {
             if (n == 0)
             {
-                loss += binaryLogistic(target, true, lr);
+                loss += binaryLogistic(target, true, lr, hidden_, grad_);
             }
             else
             {
-                loss += binaryLogistic(getNegative(target), false, lr);
+                loss += binaryLogistic(getNegative(target), false, lr, hidden_, grad_);
             }
         }
-        return loss/neg_size;
+        return loss / neg_size;
     }
 
-    float binaryLogistic(uint32_t label, bool ytruth, float lr)
+    float binaryLogistic(uint32_t label, bool ytruth, float lr, Vector<VALUE_TYPE> &hidden_, Vector<VALUE_TYPE> &grad_)
     {
         auto v = get_vec_from_wo(label);
-        float score = sigmoid(v.dot(hidden_));
+        float x = v.dot(hidden_);
+        //fprintf(stderr, "x=%f %f %f \n", x, hidden_.at(0), v.at(0));
+        float score = sigmoid(x);
 
         float alpha = lr * ((ytruth ? 1.0f : 0.0f) - score);
         grad_.add(v, alpha);
-        add_grad_to_wo(hidden_, label, alpha); //wo[label]+=hidden_
+        add_vector_to_wo(hidden_, label, alpha); //wo[label]+=hidden_
         if (ytruth)
         {
             return -log(score);
@@ -204,6 +221,16 @@ private:
         {
             return -log(1.0f - score);
         }
+    }
+
+    float log(float x)
+    {
+        if (x > 1.0)
+        {
+            return 0.0f;
+        }
+        int i = (int)(x * LOG_TABLE_SIZE);
+        return t_log_[i];
     }
 
     float sigmoid(float x)
@@ -248,9 +275,10 @@ public:
         uint32_t count = 0;
         int ws = (int)words.size();
         int half_window = (int)this->half_window;
+        std::vector<uint32_t> input_words;
         for (int i = 0; i < (int)words.size(); i++)
         {
-            std::vector<uint32_t> input_words;
+            input_words.clear();
             uint32_t label = words.at(i);
             if (use_cbow)
             {
@@ -319,22 +347,38 @@ public:
         }
     }
 
+    void uniform_init()
+    {
+        for (uint32_t i = 0; i < num_word; i++)
+        {
+            wo_[i].uniform();
+            wi_[i].uniform();
+        }
+    }
+
 protected:
     virtual void incr_word_count(uint32_t word)
     {
         word_count[word]++;
     }
-    virtual void add_grad_to_wi(const Vector<VALUE_TYPE> &grad, uint32_t word, float a)
+    virtual void add_vector_to_wi(const Vector<VALUE_TYPE> &vec, uint32_t word, float a)
     {
-        wi_[word].add(grad, a);
+        wi_[word].add(vec, a);
     }
-    virtual void add_grad_to_wo(const Vector<VALUE_TYPE> &grad, uint32_t word, float a)
+    virtual void add_vector_to_wo(const Vector<VALUE_TYPE> &vec, uint32_t word, float a)
     {
-        wo_[word].add(grad, a);
+        wo_[word].add(vec, a);
     }
     virtual uint32_t getNegative(uint32_t target)
     {
-        return (uint32_t)(sparc::myrand::uniform<double>() * num_word);
+        while (true)
+        {
+            uint32_t i = (uint32_t)(sparc::myrand::uniform<double>() * num_word);
+            if (i != target)
+            {
+                return i;
+            }
+        }
     }
     virtual Vector<VALUE_TYPE> get_vec_from_wi(uint32_t word)
     {

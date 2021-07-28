@@ -6,6 +6,7 @@
 #include "io.h"
 #include "model.h"
 #include "config.h"
+#include "pbar.h"
 
 struct Config : public BaseConfig
 {
@@ -14,8 +15,9 @@ struct Config : public BaseConfig
     uint32_t dim;
     uint32_t neg_size;
     uint32_t half_window;
+    size_t num_seq;
     std::string hash_file;
-    bool use_cbow;
+    bool use_cbow = false;
     bool is_fasta = false;
     bool is_fastq = false;
 
@@ -32,8 +34,9 @@ struct Config : public BaseConfig
     }
 };
 
-void show_help(argagg::parser &argparser)
+void show_help(const char *prog, argagg::parser &argparser)
 {
+    std::cout << "Usage: " << prog << " [options] file1, file2 ....\n";
     std::cout << "Allowed options:\n";
     std::cout << argparser;
 }
@@ -103,13 +106,13 @@ int main(int argc, char **argv)
     catch (const std::exception &e)
     {
         std::cerr << e.what() << std::endl;
-        show_help(argparser);
+        show_help(program, argparser);
         return EXIT_FAILURE;
     }
 
     if (args["help"])
     {
-        show_help(argparser);
+        show_help(program, argparser);
         return EXIT_SUCCESS;
     }
 
@@ -117,7 +120,7 @@ int main(int argc, char **argv)
         if (!args[x])
         {
             std::cerr << "ERROR: " << x << " is not set.\n";
-            show_help(argparser);
+            show_help(program, argparser);
             return EXIT_FAILURE;
         }
     config.nprocs = args["n_thread"].as<uint32_t>(0);
@@ -125,6 +128,7 @@ int main(int argc, char **argv)
     {
         config.nprocs = sparc::get_number_of_thread();
     }
+    config.backend = "smp";
     config.dim = args["dim"].as<uint32_t>(300);
     config.learning_rate = args["learning_rate"].as<float>(0.3);
     config.epoch = args["epoch"].as<uint32_t>(100);
@@ -134,6 +138,7 @@ int main(int argc, char **argv)
     config.zip_output = args["zip_output"];
     config.is_fasta = args["use_fasta"];
     config.is_fastq = args["use_fastq"];
+    config.use_cbow = args["use_cbow"];
     config.hash_file = args["hash_file"].as<std::string>();
 
     if (!sparc::file_exists(config.hash_file.c_str()))
@@ -174,24 +179,28 @@ int main(int argc, char **argv)
     return 0;
 }
 template <class BR>
-void run_epoch(uint32_t this_epoch, Config &config, BR &reader, SingleNodeModel<float> &model, rpns::CRandProj &hash)
+void run_epoch(uint32_t this_epoch, Config &config, BR &reader, SingleNodeModel<float> &model, rpns::CRandProj &hash, float learning_rate)
 {
-    myinfo("Start epoch %ld", this_epoch);
+    myinfo("Start epoch %ld", this_epoch + 1);
 
     uint32_t batchsize = config.nprocs * 100;
     uint32_t kmer_size = hash.get_kmer_size();
-    float learning_rate = config.learning_rate;
     bool update_wc = this_epoch == 0;
     float sum_loss = 0;
-    size_t sum_count = 0;
+    size_t num_of_seq = 0;
+    char msg[128];
+    sprintf(msg, "epoch %u:", this_epoch);
+    PUnknownBar ubar(msg);
+    PBar bar(msg, config.num_seq);
     while (true)
     {
         std::vector<FastaRecord> v = reader.next(batchsize);
-        sum_count += v.size();
+        num_of_seq += v.size();
         if (v.empty())
         {
             break;
         }
+
 #pragma omp parallel for
         for (size_t i = 0; i < v.size(); i++)
         {
@@ -205,39 +214,65 @@ void run_epoch(uint32_t this_epoch, Config &config, BR &reader, SingleNodeModel<
             }
 
             float loss = model.update(kmers, learning_rate, update_wc);
-
+            if (this_epoch == 0)
+            {
+                ubar.tick();
+            }
+            else
+            {
+                bar.tick();
+            }
 #pragma omp critical
             sum_loss += loss;
         }
     }
+    if (this_epoch == 0)
+    {
+        ubar.end();
+    }
+    else
+    {
+        bar.end();
+    }
 
-    myinfo("End epoch %ld, loss=%f", this_epoch, sum_count == 0 ? 0 : sum_loss / sum_count);
+    if (this_epoch == 0)
+    {
+        myinfo("Found that number of sequences is %ld", num_of_seq);
+        config.num_seq = num_of_seq;
+    }
+
+    myinfo("End epoch %ld, loss=%f", this_epoch + 1, num_of_seq == 0 ? 0 : sum_loss / num_of_seq);
 }
 
 void run(Config &config)
 {
+    omp_set_num_threads(config.nprocs);
     rpns::CRandProj hash;
     hash.load(config.hash_file);
-    myinfo("kmer_size=%lu, hash_size=%lu", hash.get_kmer_size(), hash.get_hash_size());
-    size_t word_size = 1l << hash.get_hash_size();
-    SingleNodeModel<float> model(word_size, config.dim, config.neg_size, config.use_cbow, config.half_window);
-    model.randomize_init();
+
+    size_t num_word = 1l << hash.get_hash_size();
+    myinfo("kmer_size=%lu, hash_size=%lu, num_word=%lu", hash.get_kmer_size(), hash.get_hash_size(), num_word);
+    SingleNodeModel<float> model(num_word, config.dim, config.neg_size, config.use_cbow, config.half_window);
+    //model.randomize_init();
+    model.uniform_init();
     for (uint32_t i = 0; i < config.epoch; i++)
     {
+        float learning_rate = config.learning_rate * (config.epoch - i) / config.epoch;
+
         if (config.is_fasta)
         {
             BatchReader<FastaTextReaderBase, FastaRecord> reader(config.inputpath);
-            run_epoch(i, config, reader, model, hash);
+            run_epoch(i, config, reader, model, hash, learning_rate);
         }
         else if (config.is_fastq)
         {
             BatchReader<FastqTextReaderBase, FastaRecord> reader(config.inputpath);
-            run_epoch(i, config, reader, model, hash);
+            run_epoch(i, config, reader, model, hash, learning_rate);
         }
         else
         {
             BatchReader<SeqTextReaderBase, FastaRecord> reader(config.inputpath);
-            run_epoch(i, config, reader, model, hash);
+            run_epoch(i, config, reader, model, hash, learning_rate);
         }
     }
 }
