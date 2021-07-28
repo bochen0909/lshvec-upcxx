@@ -45,7 +45,7 @@ public:
     void end()
     {
         indicators::show_console_cursor(true);
-        std::cout << std::endl;
+        //std::cout << std::endl;
     }
     virtual ~BaseBar()
     {

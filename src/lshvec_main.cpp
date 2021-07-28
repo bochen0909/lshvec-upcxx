@@ -17,7 +17,7 @@ struct Config : public BaseConfig
     uint32_t half_window;
     size_t num_seq;
     std::string hash_file;
-    bool use_cbow = false;
+    bool use_cbow = true;
     bool is_fasta = false;
     bool is_fastq = false;
 
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
         {"help", {"-h", "--help"}, "shows this help message", 0},
 
         {"zip_output", {"-z", "--zip"}, "zip output files", 0},
-        {"use_cbow", {"--use-cbow"}, "use cbow", 0},
+        {"use_skipgram", {"--use-skipgram"}, "use skipgram (ohterwise cbow)", 0},
         {"use_fasta", {"--fasta"}, "input are fasta files", 0},
         {"use_fastq", {"--fastq"}, "input are fastq files", 0},
 
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
     config.zip_output = args["zip_output"];
     config.is_fasta = args["use_fasta"];
     config.is_fastq = args["use_fastq"];
-    config.use_cbow = args["use_cbow"];
+    config.use_cbow = !args["use_skipgram"];
     config.hash_file = args["hash_file"].as<std::string>();
 
     if (!sparc::file_exists(config.hash_file.c_str()))
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 template <class BR>
 void run_epoch(uint32_t this_epoch, Config &config, BR &reader, SingleNodeModel<float> &model, rpns::CRandProj &hash, float learning_rate)
 {
-    myinfo("Start epoch %ld", this_epoch + 1);
+    myinfo("Start epoch %ld, learning_rate=%.6f", this_epoch + 1, learning_rate);
 
     uint32_t batchsize = config.nprocs * 100;
     uint32_t kmer_size = hash.get_kmer_size();
