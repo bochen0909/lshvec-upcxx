@@ -53,7 +53,7 @@ int main(int argc, char **argv)
         {"use_fastq", {"--fastq"}, "input are fastq files", 0},
 
         {"output", {"-o", "--output"}, "output file (default out.txt)", 1},
-        {"model_path", {"--model"}, "model path", 1},
+        {"vec_path", {"--vec"}, "vector file (binary) path", 1},
         {"hash_file", {"--hash-file"}, "hash file to use", 1},
 
         {"n_thread", {
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
     config.is_fasta = args["use_fasta"];
     config.is_fastq = args["use_fastq"];
     config.hash_file = args["hash_file"].as<std::string>();
-    config.model_path = args["model_path"].as<std::string>();
+    config.model_path = args["vec_path"].as<std::string>();
 
     if (!sparc::file_exists(config.hash_file.c_str()))
     {
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
     }
     if (!sparc::file_exists(config.model_path.c_str()))
     {
-        std::cerr << "model file does not exists: " << config.hash_file << std::endl;
+        std::cerr << "vector bin file does not exists: " << config.hash_file << std::endl;
         return EXIT_FAILURE;
     }
 

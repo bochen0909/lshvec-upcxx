@@ -62,6 +62,48 @@ std::vector<FastaRecord> read_fasta(const std::string &filepath)
 	return records;
 }
 
+std::vector<FastaRecord> read_fastq(const std::string &filepath)
+{
+	if (!sparc::file_exists(filepath.c_str()))
+	{
+		throw std::runtime_error(filepath + " does not  exist");
+	}
+
+	FastqTextReaderBase reader(filepath);
+	std::vector<FastaRecord> V;
+	while (true)
+	{
+		FastaRecord r = reader.next();
+		if (r.id.empty())
+		{
+			break;
+		}
+		V.push_back(r);
+	}
+	return V;
+}
+
+std::vector<FastaRecord> read_seq_text(const std::string &filepath)
+{
+	if (!sparc::file_exists(filepath.c_str()))
+	{
+		throw std::runtime_error(filepath + " does not  exist");
+	}
+
+	SeqTextReaderBase reader(filepath);
+	std::vector<FastaRecord> V;
+	while (true)
+	{
+		FastaRecord r = reader.next();
+		if (r.id.empty())
+		{
+			break;
+		}
+		V.push_back(r);
+	}
+	return V;
+}
+
 template <>
 bool record_is_valid(const FastaRecord &t)
 {

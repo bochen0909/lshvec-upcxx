@@ -50,6 +50,8 @@ template <>
 bool record_is_valid(const std::string &t);
 
 std::vector<FastaRecord> read_fasta(const std::string &filepath);
+std::vector<FastaRecord> read_fastq(const std::string &filepath);
+std::vector<FastaRecord> read_seq_text(const std::string &filepath);
 
 template <typename RECORD_TYPE>
 class ReaderBase

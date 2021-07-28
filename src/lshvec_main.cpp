@@ -5,6 +5,7 @@
 #include "kmer.h"
 #include "io.h"
 #include "model.h"
+#include "serialization.h"
 #include "config.h"
 #include "pbar.h"
 
@@ -181,58 +182,6 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void save_model(uint32_t this_epoch, Config &config, SingleNodeModel<float> &model)
-{
-    char txt[1024];
-    sprintf(txt, "%s_%u.bin", config.output_prefix.c_str(), this_epoch);
-    std::string filepath = txt;
-    if (config.zip_output)
-    {
-        filepath += ".gz";
-    }
-
-    if (config.zip_output)
-    {
-        ogzstream output(filepath.c_str());
-        bitsery::OutputStreamAdapter bw{output};
-        write(bw, this_epoch);
-        write(bw, model);
-        output.flush();
-    }
-    else
-    {
-        std::ofstream output(txt, std::ios::binary | std::ios::trunc);
-        bitsery::OutputStreamAdapter bw{output};
-        write(bw, this_epoch);
-        write(bw, model);
-        output.flush();
-    }
-}
-
-void save_vector(uint32_t this_epoch, Config &config, SingleNodeModel<float> &model)
-{
-    char txt[1024];
-    sprintf(txt, "%s_%u.vec", config.output_prefix.c_str(), this_epoch);
-    std::string filepath = txt;
-    if (config.zip_output)
-    {
-        filepath += ".gz";
-    }
-
-    if (config.zip_output)
-    {
-        ogzstream output(filepath.c_str());
-        model.write_vec(output);
-        output.flush();
-    }
-    else
-    {
-        std::ofstream output(txt);
-        model.write_vec(output);
-        output.flush();
-    }
-}
-
 template <class BR>
 void run_epoch(uint32_t this_epoch, Config &config, BR &reader, SingleNodeModel<float> &model, rpns::CRandProj &hash, float learning_rate)
 {
@@ -332,6 +281,7 @@ void run(Config &config)
         }
     }
 
-    save_model(config.epoch - 1, config, model);
+    save_vector_bin(config.epoch - 1, config.output_prefix, model, config.zip_output);
+    //save_model(config.epoch - 1, config, model);
     //save_vector(config.epoch - 1, config, model);
 }

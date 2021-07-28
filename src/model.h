@@ -437,6 +437,15 @@ public:
         }
     }
 
+    template <typename OS>
+    void write_vec_bin(OS &output)
+    {
+        for (auto &x : wi_)
+        {
+            x.write_me(output);
+        }
+    }
+
 public:
     SingleNodeModel() : Model<VALUE_TYPE>()
     {

@@ -5,11 +5,18 @@
 #include "kmer.h"
 #include "io.h"
 
-auto build_rp(const std::string &fasta_file_path, size_t kmer_size,
+auto build_rp(bool is_fasta, bool is_fastq, const std::string &fasta_file_path, size_t kmer_size,
               size_t hash_size, size_t n_thread)
 {
     spdlog::info("Build hash from {}", fasta_file_path);
-    auto records = read_fasta(fasta_file_path);
+    std::vector<FastaRecord> records;
+    if(is_fasta){
+    records = read_fasta(fasta_file_path);
+    } else if(is_fastq){
+        records = read_fastq(fasta_file_path);
+    } else {
+        records = read_seq_text(fasta_file_path);
+    }
     size_t n_required = kmer_size * hash_size * 2;
     std::vector<std::string> kmers;
     while (kmers.size() < n_required)
@@ -46,7 +53,8 @@ int main(int argc, char **argv)
 
         {"input", {"-i", "--input"}, "input fasta file", 1},
         {"output", {"-o", "--output"}, "output file path (default 'rp.bin')", 1},
-
+        {"use_fasta", {"--fasta"}, "input are fasta files", 0},
+        {"use_fastq", {"--fastq"}, "input are fastq files", 0},
         {"kmer_size", {
                           "-k",
                           "--kmer-size",
@@ -99,10 +107,27 @@ int main(int argc, char **argv)
     uint32_t hash_size = args["hash_size"].as<uint32_t>();
     std::string input_file = args["input"].as<std::string>();
     std::string output_file = args["output"].as<std::string>("rp.bin");
-
+    bool is_fasta = args["use_fasta"];
+    bool is_fastq = args["use_fastq"];
     if (!sparc::file_exists(input_file.c_str()))
     {
         std::cerr << "input file does not exists: " << input_file << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    if (!is_fasta && (sparc::endswith(input_file, ".fa") || sparc::endswith(input_file, ".fa.gz") || sparc::endswith(input_file, ".fasta.gz") || sparc::endswith(input_file, ".fasta.gz")))
+    {
+        is_fasta = true;
+    }
+
+    if (!is_fastq && (sparc::endswith(input_file, ".fq") || sparc::endswith(input_file, ".fq.gz") || sparc::endswith(input_file, ".fastq.gz") || sparc::endswith(input_file, ".fastq.gz")))
+    {
+        is_fastq = true;
+    }
+
+    if (is_fasta && is_fastq)
+    {
+        std::cerr << "can not be both fasta and fastq" << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -112,7 +137,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    auto rp = build_rp(input_file, kmer_size, hash_size, n_thread);
+    auto rp = build_rp(is_fasta, is_fastq, input_file, kmer_size, hash_size, n_thread);
     rp->save(output_file);
     return 0;
 }
