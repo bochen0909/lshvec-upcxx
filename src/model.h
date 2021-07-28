@@ -20,6 +20,11 @@ class Vector
     std::vector<VALUE_TYPE> val;
 
 public:
+    void read_me(bitsery::InputStreamAdapter &br)
+    {
+        read(br, val);
+    }
+
     void write_me(bitsery::OutputStreamAdapter &bw) const
     {
         write(bw, val);
@@ -110,6 +115,12 @@ inline void write(bitsery::OutputStreamAdapter &bw, const Vector<VALUE_TYPE> &va
     val.write_me(bw);
 }
 
+template <typename VALUE_TYPE>
+inline void read(bitsery::InputStreamAdapter &br, Vector<VALUE_TYPE> &val)
+{
+    val.read_me(br);
+}
+
 static int MAX_SIGMOID = 8;
 static int SIGMOID_TABLE_SIZE = 512;
 static int LOG_TABLE_SIZE = 512;
@@ -149,13 +160,25 @@ protected:
     uint32_t neg_size;
 
 public:
+    uint32_t get_dim() const
+    {
+        return dim;
+    }
     void write_me(bitsery::OutputStreamAdapter &bw) const
     {
         write(bw, dim);
         write(bw, neg_size);
     }
+    void read_me(bitsery::InputStreamAdapter &br)
+    {
+        read(br, dim);
+        read(br, neg_size);
+    }
 
 public:
+    OneSampleUpdator()
+    {
+    }
     OneSampleUpdator(uint32_t dim, uint32_t neg_size) : dim(dim), neg_size(neg_size)
     {
     }
@@ -287,6 +310,12 @@ protected:
     uint32_t half_window;
 
 public:
+    void read_me(bitsery::InputStreamAdapter &br)
+    {
+        OneSampleUpdator<VALUE_TYPE>::read_me(br);
+        read(br, use_cbow);
+        read(br, half_window);
+    }
     void write_me(bitsery::OutputStreamAdapter &bw) const
     {
         OneSampleUpdator<VALUE_TYPE>::write_me(bw);
@@ -294,7 +323,24 @@ public:
         write(bw, half_window);
     }
 
+    void transform(const std::vector<uint32_t> &kmers, Vector<VALUE_TYPE> &vec)
+    {
+        vec.zero();
+        if (kmers.empty())
+        {
+            return;
+        }
+        for (uint32_t kmer : kmers)
+        {
+            vec.add(this->get_vec_from_wi(kmer));
+        }
+        vec.mul(1.0f / kmers.size());
+    }
+
 public:
+    Model() : OneSampleUpdator<VALUE_TYPE>()
+    {
+    }
     Model(uint32_t dim, uint32_t neg_size, bool use_cbow, uint32_t half_window) : OneSampleUpdator<VALUE_TYPE>(dim, neg_size), use_cbow(use_cbow), half_window(half_window)
     {
     }
@@ -364,6 +410,15 @@ protected:
     std::vector<uint32_t> word_count;
 
 public:
+    void read_me(bitsery::InputStreamAdapter &br)
+    {
+        Model<VALUE_TYPE>::read_me(br);
+        read(br, num_word);
+        read(br, wo_);
+        read(br, wi_);
+        read(br, word_count);
+    }
+
     void write_me(bitsery::OutputStreamAdapter &bw) const
     {
         Model<VALUE_TYPE>::write_me(bw);
@@ -383,6 +438,9 @@ public:
     }
 
 public:
+    SingleNodeModel() : Model<VALUE_TYPE>()
+    {
+    }
     SingleNodeModel(uint32_t num_word, uint32_t dim, uint32_t neg_size, bool use_cbow, uint32_t half_window) : Model<VALUE_TYPE>(dim, neg_size, use_cbow, half_window), num_word(num_word)
     {
         for (uint32_t i = 0; i < num_word; i++)

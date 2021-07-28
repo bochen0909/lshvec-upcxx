@@ -406,7 +406,7 @@ public:
         }
     }
 
-    auto next(size_t batch_size)
+    std::vector<RECORD> next(size_t batch_size)
     {
         std::vector<RECORD> ret;
         while (ret.size() < batch_size)
@@ -462,6 +462,34 @@ protected:
 };
 
 template <typename T>
+inline void read(bitsery::InputStreamAdapter &br, T &val)
+{
+    return br.readBytes<sizeof(T)>(val);
+}
+
+template <>
+inline void read(bitsery::InputStreamAdapter &bw, double &val)
+{
+    char *byteArray = new char[sizeof(double)];
+    for (uint32_t i = 0; i < sizeof(double); i++)
+    {
+        bw.readBytes<sizeof(char)>(byteArray[i]);
+    }
+    val = *reinterpret_cast<double *>(byteArray);
+}
+
+template <>
+inline void read(bitsery::InputStreamAdapter &bw, float &val)
+{
+    char *byteArray = new char[sizeof(float)];
+    for (uint32_t i = 0; i < sizeof(float); i++)
+    {
+        bw.readBytes<sizeof(char)>(byteArray[i]);
+    }
+    val = *reinterpret_cast<float *>(byteArray);
+}
+
+template <typename T>
 inline void write(bitsery::OutputStreamAdapter &bw, T val)
 {
 
@@ -503,6 +531,24 @@ inline void write(bitsery::OutputStreamAdapter &bw, std::vector<T> val)
     for (auto &x : val)
     {
         write(bw, x);
+    }
+}
+template <typename T>
+inline void read(bitsery::InputStreamAdapter &br, bool &val)
+{
+    int b;
+    read(br, b);
+    val = b > 0;
+}
+template <typename T>
+inline void read(bitsery::InputStreamAdapter &br, std::vector<T> &val)
+{
+    size_t n;
+
+    read(br, n);
+    for (auto &x : val)
+    {
+        read(br, x);
     }
 }
 

@@ -63,7 +63,7 @@ int main(int argc, char **argv)
         {"use_fasta", {"--fasta"}, "input are fasta files", 0},
         {"use_fastq", {"--fastq"}, "input are fastq files", 0},
 
-        {"output", {"-o", "--output"}, "output folder (default './out')", 1},
+        {"output", {"-o", "--output"}, "output model prefix (default 'model')", 1},
         {"hash_file", {"--hash-file"}, "hash file to use", 1},
         {"learning_rate", {
                               "--lr",
@@ -333,5 +333,5 @@ void run(Config &config)
     }
 
     save_model(config.epoch - 1, config, model);
-    save_vector(config.epoch - 1, config, model);
+    //save_vector(config.epoch - 1, config, model);
 }

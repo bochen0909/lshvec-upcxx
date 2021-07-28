@@ -79,6 +79,11 @@ add_dependencies(lshvec spdloglib gzstreamlib bitserylib)
 target_include_directories(lshvec PUBLIC   "${LOCAL_EXT_PREFIX_DIR}/include" )
 target_link_libraries(lshvec PUBLIC spdlog gzstream ZLIB::ZLIB OpenMP::OpenMP_CXX)
 
+add_executable(transform src/transform_main.cpp src/utils.cpp src/io.cpp src/log.cpp src/CRandProj.cpp src/kmer.cpp)
+add_dependencies(transform spdloglib gzstreamlib bitserylib)
+target_include_directories(transform PUBLIC   "${LOCAL_EXT_PREFIX_DIR}/include" )
+target_link_libraries(transform PUBLIC spdlog gzstream ZLIB::ZLIB OpenMP::OpenMP_CXX)
+
 
 ############### unit test ###########################
 include_directories( "${LOCAL_EXT_PREFIX_DIR}/include")
