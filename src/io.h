@@ -472,23 +472,25 @@ inline void read(bitsery::InputStreamAdapter &br, T &val)
 template <>
 inline void read(bitsery::InputStreamAdapter &bw, double &val)
 {
-    char *byteArray = new char[sizeof(double)];
+    static char *byteArray = new char[sizeof(double)];
     for (uint32_t i = 0; i < sizeof(double); i++)
     {
         bw.readBytes<sizeof(char)>(byteArray[i]);
     }
     val = *reinterpret_cast<double *>(byteArray);
+    //delete[] byteArray;
 }
 
 template <>
 inline void read(bitsery::InputStreamAdapter &bw, float &val)
 {
-    char *byteArray = new char[sizeof(float)];
+    static char *byteArray = new char[sizeof(float)];
     for (uint32_t i = 0; i < sizeof(float); i++)
     {
         bw.readBytes<sizeof(char)>(byteArray[i]);
     }
     val = *reinterpret_cast<float *>(byteArray);
+    //delete[] byteArray;
 }
 
 template <typename T>

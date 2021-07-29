@@ -113,7 +113,7 @@ int main(int argc, char **argv)
     }
     if (!sparc::file_exists(config.model_path.c_str()))
     {
-        std::cerr << "vector bin file does not exists: " << config.hash_file << std::endl;
+        std::cerr << "vector bin file does not exists: " << config.model_path << std::endl;
         return EXIT_FAILURE;
     }
 
