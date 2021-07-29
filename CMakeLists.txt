@@ -75,8 +75,8 @@ if(BUILD_LSHVEC_OPENMP)
 	find_package(OpenMP REQUIRED)
 	find_package(ZLIB REQUIRED)
 	include_directories("${OpenMP_CXX_FLAGS}")
-	add_executable(hash src/hash_main.cpp src/CRandProj.cpp src/utils.cpp src/kmer.cpp src/io.cpp)
-	target_link_libraries(hash PUBLIC spdlog gzstream ZLIB::ZLIB  OpenMP::OpenMP_CXX)
+	add_executable(rphash src/hash_main.cpp src/CRandProj.cpp src/utils.cpp src/kmer.cpp src/io.cpp)
+	target_link_libraries(rphash PUBLIC spdlog gzstream ZLIB::ZLIB  OpenMP::OpenMP_CXX)
 
 	
 	find_package(OpenMP REQUIRED)
