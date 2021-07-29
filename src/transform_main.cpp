@@ -187,7 +187,7 @@ void run(Config &config, BR &reader, rpns::CRandProj &hash, OS &os)
             break;
         }
 
-        std::vector<Vector<float>> V;
+        std::vector<Vector<float>> embed(v.size());
 
 #pragma omp parallel for
         for (size_t i = 0; i < v.size(); i++)
@@ -203,10 +203,9 @@ void run(Config &config, BR &reader, rpns::CRandProj &hash, OS &os)
             Vector<float> vec(dim);
             transform(kmers, wi, vec);
             ubar.tick();
-#pragma omp critical
-            V.push_back(vec);
+            embed[i] = vec;
         }
-        for (auto &x : V)
+        for (auto &x : embed)
         {
             x.write_me(os);
         }
