@@ -16,16 +16,19 @@ set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -ggdb -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -s")
 
-option(BUILD_LSHVEC_UPCXX "build UPCXX version of LSHVEC" ON)
+option(BUILD_LSHVEC_OPENMP "build openmp version of LSHVec" ON)
+option(BUILD_LSHVEC_UPCXX "build UPCXX version of LSHVec" OFF)
+option(BUILD_TEST "build test cases" OFF)
 
-
+configure_file(src/ProjConfig.h.in src/ProjConfig.h)
 
 set(LOCAL_EXT_PREFIX_DIR ${PROJECT_SOURCE_DIR}/extlib/local)       
-
-add_custom_target(hsds_upcxx ALL)
-
 include(cmake/CMakefile.external)
+include_directories( "${LOCAL_EXT_PREFIX_DIR}/include")
+include_directories("${PROJECT_BINARY_DIR}/src")
 
+link_directories( "${LOCAL_EXT_PREFIX_DIR}/lib" )
+link_directories( "${LOCAL_EXT_PREFIX_DIR}/lib64" )
 
 ############# upcxx programs ###########################
 if(BUILD_LSHVEC_UPCXX)
@@ -61,51 +64,54 @@ if(BUILD_LSHVEC_UPCXX)
         target_link_libraries(${EXEC} PUBLIC ${MPI_CXX_LIBRARIES})
 		target_link_libraries(${EXEC} PUBLIC spdlog gzstream ZLIB::ZLIB ${UPCXX_LIBRARIES})
 	    set_target_properties(${EXEC} PROPERTIES EXCLUDE_FROM_ALL TRUE)
-	    add_dependencies(hsds_upcxx ${EXEC})
 	endforeach(EXEC)
 	
 	
 endif()
 
-
-find_package(OpenMP REQUIRED)
-find_package(ZLIB REQUIRED)
-include_directories("${OpenMP_CXX_FLAGS}")
-add_executable(hash src/hash_main.cpp src/CRandProj.cpp src/utils.cpp src/kmer.cpp src/io.cpp)
-target_link_libraries(hash PUBLIC spdlog gzstream ZLIB::ZLIB  OpenMP::OpenMP_CXX)
-
 ################# lshvec (smp) train and transform ############################
-find_package(OpenMP REQUIRED)
-add_executable(train src/train_main.cpp src/serialization.cpp src/utils.cpp src/io.cpp src/log.cpp src/CRandProj.cpp src/kmer.cpp)
-add_dependencies(train spdloglib gzstreamlib bitserylib)
-target_include_directories(train PUBLIC   "${LOCAL_EXT_PREFIX_DIR}/include" )
-target_link_libraries(train PUBLIC spdlog gzstream ZLIB::ZLIB OpenMP::OpenMP_CXX)
+if(BUILD_LSHVEC_OPENMP)
 
-add_executable(transform src/transform_main.cpp src/serialization.cpp src/utils.cpp src/io.cpp src/log.cpp src/CRandProj.cpp src/kmer.cpp)
-add_dependencies(transform spdloglib gzstreamlib bitserylib)
-target_include_directories(transform PUBLIC   "${LOCAL_EXT_PREFIX_DIR}/include" )
-target_link_libraries(transform PUBLIC spdlog gzstream ZLIB::ZLIB OpenMP::OpenMP_CXX)
+	find_package(OpenMP REQUIRED)
+	find_package(ZLIB REQUIRED)
+	include_directories("${OpenMP_CXX_FLAGS}")
+	add_executable(hash src/hash_main.cpp src/CRandProj.cpp src/utils.cpp src/kmer.cpp src/io.cpp)
+	target_link_libraries(hash PUBLIC spdlog gzstream ZLIB::ZLIB  OpenMP::OpenMP_CXX)
+
+	
+	find_package(OpenMP REQUIRED)
+	add_executable(train src/train_main.cpp src/serialization.cpp src/utils.cpp src/io.cpp src/log.cpp src/CRandProj.cpp src/kmer.cpp)
+	add_dependencies(train spdloglib gzstreamlib bitserylib)
+	target_include_directories(train PUBLIC   "${LOCAL_EXT_PREFIX_DIR}/include" )
+	target_link_libraries(train PUBLIC spdlog gzstream ZLIB::ZLIB OpenMP::OpenMP_CXX)
+
+	add_executable(transform src/transform_main.cpp src/serialization.cpp src/utils.cpp src/io.cpp src/log.cpp src/CRandProj.cpp src/kmer.cpp)
+	add_dependencies(transform spdloglib gzstreamlib bitserylib)
+	target_include_directories(transform PUBLIC   "${LOCAL_EXT_PREFIX_DIR}/include" )
+	target_link_libraries(transform PUBLIC spdlog gzstream ZLIB::ZLIB OpenMP::OpenMP_CXX)
+endif()
+
+if(BUILD_TEST)
+	############### unit test ###########################
+	include_directories( "${LOCAL_EXT_PREFIX_DIR}/include")
+	add_executable(test_utils src/test_utils.cpp src/utils.cpp)
+	add_executable(test_kmer src/test_kmer.cpp src/utils.cpp src/kmer.cpp)
+
+	add_executable(test_read_fasta src/test_read_fasta.cpp src/utils.cpp src/io.cpp)
+	add_dependencies(test_read_fasta spdloglib gzstreamlib bitserylib)
+	target_include_directories(test_read_fasta PUBLIC   "${LOCAL_EXT_PREFIX_DIR}/include" )
+	target_link_libraries(test_read_fasta PUBLIC spdlog gzstream ZLIB::ZLIB  )
+
+	foreach(textfile knucleotide.fasta knucleotide.fasta.gz sample.fa sample.fa.gz sample.fq sample.fq.gz sample.txt sample.txt.gz )
+		file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data/${textfile} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+	endforeach(textfile)
 
 
-############### unit test ###########################
-include_directories( "${LOCAL_EXT_PREFIX_DIR}/include")
-add_executable(test_utils src/test_utils.cpp src/utils.cpp)
-add_executable(test_kmer src/test_kmer.cpp src/utils.cpp src/kmer.cpp)
-
-add_executable(test_read_fasta src/test_read_fasta.cpp src/utils.cpp src/io.cpp)
-add_dependencies(test_read_fasta spdloglib gzstreamlib bitserylib)
-target_include_directories(test_read_fasta PUBLIC   "${LOCAL_EXT_PREFIX_DIR}/include" )
-target_link_libraries(test_read_fasta PUBLIC spdlog gzstream ZLIB::ZLIB  )
-
-foreach(textfile knucleotide.fasta knucleotide.fasta.gz sample.fa sample.fa.gz sample.fq sample.fq.gz sample.txt sample.txt.gz )
-	file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data/${textfile} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-endforeach(textfile)
+	find_package(OpenMP REQUIRED)
+	include_directories("${OpenMP_CXX_FLAGS}")
+	add_executable(test_hash src/test_hash.cpp src/CRandProj.cpp src/utils.cpp )
+	target_link_libraries( test_hash  OpenMP::OpenMP_CXX )
 
 
-find_package(OpenMP REQUIRED)
-include_directories("${OpenMP_CXX_FLAGS}")
-add_executable(test_hash src/test_hash.cpp src/CRandProj.cpp src/utils.cpp )
-target_link_libraries( test_hash  OpenMP::OpenMP_CXX )
-
-
-add_executable(test_random_model src/test_random_model.cpp  src/utils.cpp )
+	add_executable(test_random_model src/test_random_model.cpp  src/utils.cpp )
+endif()

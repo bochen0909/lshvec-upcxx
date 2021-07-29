@@ -26,6 +26,7 @@
 #include "upchelper.h"
 #include "model_upcxx.h"
 #include "pbar.h"
+#include "ProjConfig.h"
 
 using namespace std;
 using namespace sparc;
@@ -60,6 +61,8 @@ struct Config : public BaseConfig
 
 void show_help(const char *prog, argagg::parser &argparser)
 {
+	std::cout << prog << " v" << PROJECT_VERSION << "\n";
+
 	std::cout << "Usage: " << prog << " [options] file1, file2 ....\n";
 	std::cout << "Allowed options:\n";
 	std::cout << argparser;

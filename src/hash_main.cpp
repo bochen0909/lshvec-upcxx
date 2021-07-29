@@ -4,17 +4,23 @@
 #include "CRandProj.h"
 #include "kmer.h"
 #include "io.h"
+#include "ProjConfig.h"
 
 auto build_rp(bool is_fasta, bool is_fastq, const std::string &fasta_file_path, size_t kmer_size,
               size_t hash_size, size_t n_thread)
 {
     spdlog::info("Build hash from {}", fasta_file_path);
     std::vector<FastaRecord> records;
-    if(is_fasta){
-    records = read_fasta(fasta_file_path);
-    } else if(is_fastq){
+    if (is_fasta)
+    {
+        records = read_fasta(fasta_file_path);
+    }
+    else if (is_fastq)
+    {
         records = read_fastq(fasta_file_path);
-    } else {
+    }
+    else
+    {
         records = read_seq_text(fasta_file_path);
     }
     size_t n_required = kmer_size * hash_size * 2;
@@ -38,11 +44,15 @@ auto build_rp(bool is_fasta, bool is_fastq, const std::string &fasta_file_path, 
     return builder.make_rp();
 }
 
-void show_help(argagg::parser &argparser)
+void show_help(const char *prog, argagg::parser &argparser)
 {
+    std::cout << prog << " v" << PROJECT_VERSION << "\n";
+
+    std::cout << "Usage: " << prog << " [options] <input file>\n";
     std::cout << "Allowed options:\n";
     std::cout << argparser;
 }
+
 int main(int argc, char **argv)
 {
 
@@ -84,13 +94,13 @@ int main(int argc, char **argv)
     catch (const std::exception &e)
     {
         std::cerr << e.what() << std::endl;
-        std::cerr << argparser;
+        show_help(program, argparser);
         return EXIT_FAILURE;
     }
 
     if (args["help"])
     {
-        show_help(argparser);
+        show_help(program, argparser);
 
         return EXIT_SUCCESS;
     }
@@ -99,7 +109,7 @@ int main(int argc, char **argv)
         if (!args[x])
         {
             std::cerr << "ERROR: " << x << " is not set.\n";
-            show_help(argparser);
+            show_help(program, argparser);
             return EXIT_FAILURE;
         }
     uint32_t n_thread = args["n_thread"].as<uint32_t>(0);

@@ -36,6 +36,7 @@
 .settings
 build/
 build2/
+build3/
 release/
 Debug/
 .pydevproject

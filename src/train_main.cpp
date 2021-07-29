@@ -8,6 +8,7 @@
 #include "serialization.h"
 #include "config.h"
 #include "pbar.h"
+#include "ProjConfig.h"
 
 struct Config : public BaseConfig
 {
@@ -39,6 +40,8 @@ struct Config : public BaseConfig
 
 void show_help(const char *prog, argagg::parser &argparser)
 {
+    std::cout << prog << " v" << PROJECT_VERSION << "\n";
+
     std::cout << "Usage: " << prog << " [options] file1, file2 ....\n";
     std::cout << "Allowed options:\n";
     std::cout << argparser;
