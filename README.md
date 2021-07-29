@@ -24,12 +24,9 @@ First clone the code
     cd lshvec-upcxx
 ```
 
-
-
-
 ### OpenMP Version
 
-This the mult-thread version, which is built default.
+Here is the mult-threads version, which is built default.
 
 #### Requirements
 
@@ -49,12 +46,12 @@ This the mult-thread version, which is built default.
 
 #### Requirements
 
-1. Linux, GCC with C++14
+1. Linux, GCC with C++17
 2. openmp, zlib
-3. mpi > 2.0
-4. UPCXX > 202003
+3. mpi >= 2.0
+4. upcxx >= 202003
 
-Checkout (upcxx website)[https://bitbucket.org/berkeleylab/upcxx/wiki/Home] for more details about upcxx
+Checkout [upcxx website](https://bitbucket.org/berkeleylab/upcxx/wiki/Home) for more details about upcxx
 
 #### Build
 ```
@@ -169,11 +166,11 @@ transform sequences to vectors
 
 ## Compare to FastText version
 
-* Pure c++, less dependence
+* Pure C++, less dependence
 * Use C++ instead of python to make hash function
-* Hash codes of kmers are computed during training. (FastText version needs to save hashed kmers in file which requires big space.)
-* Initialize fast. (FastText version builds dictionary before training which takes long time before training)
-* Use openmp instead of thread.
+* Hash code is computed during training. (FastText version needs to save hashed kmers in file which requires big space.)
+* Initialize fast. (FastText version builds dictionary before training which takes super long time for big data)
+* Use openmp instead of pthread.
 
 
 ## License
