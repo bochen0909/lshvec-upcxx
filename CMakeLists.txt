@@ -63,7 +63,7 @@ if(BUILD_LSHVEC_UPCXX)
 		target_compile_definitions(${EXEC} PUBLIC "-DUSE_UPCXXCLIENT")
         target_link_libraries(${EXEC} PUBLIC ${MPI_CXX_LIBRARIES})
 		target_link_libraries(${EXEC} PUBLIC spdlog gzstream ZLIB::ZLIB ${UPCXX_LIBRARIES})
-	    set_target_properties(${EXEC} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+	    #set_target_properties(${EXEC} PROPERTIES EXCLUDE_FROM_ALL TRUE)
 	endforeach(EXEC)
 	
 	
