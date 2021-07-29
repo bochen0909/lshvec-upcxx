@@ -48,6 +48,7 @@ if(BUILD_LSHVEC_UPCXX)
 		src/train_upcxx_main.cpp 
 		src/log.cpp src/utils.cpp
 		src/kmer.cpp src/CRandProj.cpp
+		src/io.cpp
 		)
  
 

@@ -283,6 +283,5 @@ void run(Config &config)
 
     save_vector_bin(config.epoch, config.output_prefix, model, config.zip_output);
     save_wordcounts(config.epoch, config.output_prefix, model, config.zip_output);
-    //save_model(config.epoch - 1, config, model);
-    //save_vector(config.epoch - 1, config, model);
+    myinfo("Finished!");
 }

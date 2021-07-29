@@ -20,6 +20,14 @@ class Vector
     std::vector<VALUE_TYPE> val;
 
 public:
+    void push_back(VALUE_TYPE x)
+    {
+        val.push_back(x);
+    }
+    const std::vector<VALUE_TYPE> &get_val() const
+    {
+        return val;
+    }
     size_t get_dim()
     {
         return val.size();

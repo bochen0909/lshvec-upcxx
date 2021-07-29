@@ -54,32 +54,13 @@ struct BaseConfig
 		sprintf(tmp, "%s/part_h%d_r%d.db", scratch_dir.c_str(), h, rank);
 		return tmp;
 	}
-	std::string get_my_output(bool is_text = true)
+	std::string get_my_output()
 	{
 		char tmp[2048];
-		if (zip_output)
-		{
-			sprintf(tmp, "%s/part_r%06d.%s.gz", outputpath.c_str(), rank, is_text ? "txt" : "bin");
-		}
-		else
-		{
-			sprintf(tmp, "%s/part_r%06d.%s", outputpath.c_str(), rank, is_text ? "txt" : "bin");
-		}
+		sprintf(tmp, "%s/part_r%06d", outputpath.c_str(), rank);
 		return tmp;
 	}
-	std::string get_my_output(int h, bool is_text = true)
-	{
-		char tmp[2048];
-		if (zip_output)
-		{
-			sprintf(tmp, "%s/part_h%06d_r%06d.%s.gz", outputpath.c_str(), h, rank, is_text ? "txt" : "bin");
-		}
-		else
-		{
-			sprintf(tmp, "%s/part_h%06d_r%06d.%s", outputpath.c_str(), h, rank, is_text ? "txt" : "bin");
-		}
-		return tmp;
-	}
+
 	int get_my_port()
 	{
 		return get_my_port(0);

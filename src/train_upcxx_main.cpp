@@ -24,6 +24,8 @@
 #include "log.h"
 #include "config.h"
 #include "upchelper.h"
+#include "model_upcxx.h"
+#include "pbar.h"
 
 using namespace std;
 using namespace sparc;
@@ -39,7 +41,6 @@ struct Config : public BaseConfig
 	uint32_t half_window;
 	size_t num_seq;
 	std::string hash_file;
-	std::string output_prefix;
 	bool use_cbow = true;
 	bool is_fasta = false;
 	bool is_fastq = false;
@@ -53,7 +54,6 @@ struct Config : public BaseConfig
 		myinfo("config: neg_size=%ld", neg_size);
 		myinfo("config: half_window=%ld", half_window);
 		myinfo("config: hash_file=%s", hash_file.c_str());
-		myinfo("config: output_prefix=%s", output_prefix.c_str());
 		myinfo("config: use_cbow=%s", use_cbow ? "true" : "false");
 	}
 };
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 		{"use_fasta", {"--fasta"}, "input are fasta files", 0},
 		{"use_fastq", {"--fastq"}, "input are fastq files", 0},
 
-		{"output", {"-o", "--output"}, "output model prefix (default 'model')", 1},
+		{"output", {"-o", "--output"}, "output folder (default 'output')", 1},
 		{"hash_file", {"--hash-file"}, "hash file to use", 1},
 		{"learning_rate", {
 							  "--lr",
@@ -129,11 +129,6 @@ int main(int argc, char **argv)
 					  "--epoch",
 				  },
 		 "number of epochs to train (default 100)",
-		 1},
-		{"n_thread", {
-						 "--thread",
-					 },
-		 "thread to use (default 0)",
 		 1},
 
 	}};
@@ -163,11 +158,7 @@ int main(int argc, char **argv)
 			show_help(program, argparser);
 			return EXIT_FAILURE;
 		}
-	config.nprocs = args["n_thread"].as<uint32_t>(0);
-	if (config.nprocs == 0)
-	{
-		config.nprocs = sparc::get_number_of_thread();
-	}
+
 	config.dim = args["dim"].as<uint32_t>(300);
 	config.learning_rate = args["learning_rate"].as<float>(0.3);
 	config.epoch = args["epoch"].as<uint32_t>(100);
@@ -210,9 +201,9 @@ int main(int argc, char **argv)
 		}
 	}
 
-	config.output_prefix = args["output"].as<std::string>("model");
-	config.print();
-	std::string outputpath = config.output_prefix;
+	config.outputpath = args["output"].as<std::string>("output");
+
+	std::string outputpath = config.outputpath;
 
 	upcxx::barrier();
 	if (upcxx::rank_me() == 0)
@@ -241,6 +232,98 @@ int main(int argc, char **argv)
 }
 
 rpns::CRandProj g_hash;
+
+template <class BR>
+void run_epoch(uint32_t this_epoch, Config &config, BR &reader, UPCXXModel<float> &model, rpns::CRandProj &hash, float learning_rate)
+{
+	if (config.rank == 0)
+	{
+		myinfo("Start epoch %ld, learning_rate=%.6f", this_epoch + 1, learning_rate);
+	}
+
+	uint32_t batchsize = 10;
+	uint32_t kmer_size = hash.get_kmer_size();
+	bool update_wc = this_epoch == 0;
+	float sum_loss = 0;
+	size_t num_of_seq = 0;
+	char msg[128];
+	sprintf(msg, "epoch %u:", this_epoch);
+	PUnknownBar *ubar = 0;
+	PBar *bar = 0;
+	if (config.rank == 0)
+	{
+		ubar = new PUnknownBar(msg);
+		bar = new PBar(msg, config.num_seq);
+	}
+	while (true)
+	{
+		std::vector<FastaRecord> v = reader.next(batchsize);
+		sparc::shuffle(v);
+		num_of_seq += v.size();
+		if (v.empty())
+		{
+			break;
+		}
+
+		for (size_t i = 0; i < v.size(); i++)
+		{
+			std::string &seq = v.at(i).seq;
+
+			auto strkmers = generate_kmer_for_fastseq(seq, kmer_size, "N", true);
+			std::vector<uint32_t> kmers;
+			for (auto &strkmer : strkmers)
+			{
+				kmers.push_back(hash.hash(strkmer, false));
+			}
+
+			float loss = model.update(kmers, learning_rate, update_wc);
+			if (config.rank == 0)
+			{
+				if (this_epoch == 0)
+				{
+					ubar->tick();
+				}
+				else
+				{
+					bar->tick();
+				}
+			}
+			sum_loss += loss;
+		}
+	}
+	if (config.rank == 0)
+	{
+		if (this_epoch == 0)
+		{
+			ubar->end();
+		}
+		else
+		{
+			bar->end();
+		}
+		delete ubar;
+		delete bar;
+	}
+
+	upcxx::barrier();
+
+	float mean_loss = num_of_seq == 0 ? 0 : sum_loss / num_of_seq;
+	int all_sum_loss = upcxx::reduce_all(mean_loss, upcxx_op_add).wait();
+
+	if (this_epoch == 0)
+	{
+		config.num_seq = num_of_seq;
+	}
+	if (config.rank == 0)
+	{
+		if (this_epoch == 0)
+		{
+			myinfo("Found that number of sequences is %ld", num_of_seq);
+		}
+		myinfo("End epoch %ld, loss=%f", this_epoch + 1, mean_loss);
+	}
+}
+
 int run(const std::vector<std::string> &input, Config &config)
 {
 
@@ -266,17 +349,44 @@ int run(const std::vector<std::string> &input, Config &config)
 		}
 	}
 
+	uint32_t num_word = (uint32_t)(1l << g_hash.get_hash_size());
+	UPCXXModel<float> model(num_word, config.rank, config.nprocs, config.dim, config.neg_size, config.use_cbow, config.half_window);
+	model.uniform_init();
 
-
-	for (uint32_t i = 1; i < config.epoch + 1; i++)
+	for (uint32_t i = 0; i < config.epoch; i++)
 	{
+		float learning_rate = config.learning_rate * (config.epoch - i) / config.epoch;
+
+		if (config.is_fasta)
+		{
+			BatchReader<FastaTextReaderBase, FastaRecord> reader(input);
+			run_epoch(i, config, reader, model, g_hash, learning_rate);
+		}
+		else if (config.is_fastq)
+		{
+			BatchReader<FastqTextReaderBase, FastaRecord> reader(input);
+			run_epoch(i, config, reader, model, g_hash, learning_rate);
+		}
+		else
+		{
+			BatchReader<SeqTextReaderBase, FastaRecord> reader(input);
+			run_epoch(i, config, reader, model, g_hash, learning_rate);
+		}
 	}
 
 	upcxx::barrier();
 
-	//dump_vector(config.get_my_output(false), config.rank);
-
+	std::string save_prefix = config.get_my_output() + ".vec.bin";
+	myinfo("saving vectors to %s", save_prefix.c_str());
+	model.dump_vector_bin(save_prefix, config.zip_output);
+	save_prefix = config.get_my_output() + ".wc.txt";
+	myinfo("saving word counts to %s", save_prefix.c_str());
+	model.dump_word_counts(save_prefix, config.zip_output);
 	upcxx::barrier();
-
+	if (config.rank == 0)
+	{
+		myinfo("Finished!");
+	}
+	upcxx::finalize();
 	return 0;
 }
