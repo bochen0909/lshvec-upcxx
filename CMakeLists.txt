@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.10)
 project(LSHVEC-UPCXX VERSION 0.1.0 LANGUAGES CXX)
 
 #specify the C++ standard
-set(CMAKE_STANDARD 14)
+set(CMAKE_STANDARD 17)
 set(CMAKE_STANDARD_REQUIRED True)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -55,7 +55,7 @@ if(BUILD_LSHVEC_UPCXX)
 						
 	foreach(EXEC  train_upcxx )
 		add_dependencies(${EXEC} spdloglib gzstreamlib)
-		target_include_directories(${EXEC} PUBLIC ${UPCXX_INCLUDE_DIRS} "${LOCAL_EXT_PREFIX_DIR}/include" )
+		target_include_directories(${EXEC} PUBLIC ${UPCXX_INCLUDE_DIRS} "${LOCAL_EXT_PREFIX_DIR}/include" ${CMAKE_CURRENT_SOURCE_DIR}/src)
 		target_compile_definitions(${EXEC} PUBLIC ${UPCXX_DEFINITIONS})
 		target_compile_definitions(${EXEC} PUBLIC "-DUSE_UPCXXCLIENT")
         target_link_libraries(${EXEC} PUBLIC ${MPI_CXX_LIBRARIES})

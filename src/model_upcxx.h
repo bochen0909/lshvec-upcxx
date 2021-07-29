@@ -11,6 +11,7 @@
 #include <vector>
 #include <cmath>
 #include <iomanip>
+#include "lru_cache/dynamic_lru_cache.h"
 #include "model.h"
 
 template <>
@@ -63,10 +64,14 @@ protected:
     uint32_t *bucket_start = 0;
     uint32_t *bucket_end = 0;
     uint32_t bucket = 0;
+    lru_cache::DynamicLruCache<uint32_t, Vector<VALUE_TYPE>> cache1;
+    lru_cache::DynamicLruCache<uint32_t, Vector<VALUE_TYPE>> cache2;
 
 public:
     UPCXXModel(uint32_t total_num_word, uint32_t this_rank, uint32_t num_rank, uint32_t dim, uint32_t neg_size, bool use_cbow, uint32_t half_window)
-        : Model<VALUE_TYPE>(dim, neg_size, use_cbow, half_window), total_num_word(total_num_word), num_rank(num_rank), this_rank(this_rank), local_model(0)
+        : Model<VALUE_TYPE>(dim, neg_size, use_cbow, half_window), 
+        total_num_word(total_num_word), num_rank(num_rank), this_rank(this_rank), local_model(0),
+        cache1(1024), cache2(1024)
     {
         bucket_start = new uint32_t[num_rank];
         bucket_end = new uint32_t[num_rank];
@@ -352,11 +357,31 @@ protected:
     Vector<VALUE_TYPE> get_vec_from_wo(uint32_t word)
     {
         return upcxx_get_vec_from_wo(word).wait();
+        if (cache1.contains(word))
+        {
+            return cache1.get(word);
+        }
+        else
+        {
+            auto v = upcxx_get_vec_from_wo(word).wait();
+            cache1.insert(word, v);
+            return v;
+        }
     }
 
     Vector<VALUE_TYPE> get_vec_from_wi(uint32_t word)
     {
-        return upcxx_get_vec_from_wi(word).wait();
+        return  upcxx_get_vec_from_wi(word).wait();
+        if (cache2.contains(word))
+        {
+            return cache2.get(word);
+        }
+        else
+        {
+            auto v = upcxx_get_vec_from_wi(word).wait();
+            cache2.insert(word, v);
+            return v;
+        }
     }
 };
 
