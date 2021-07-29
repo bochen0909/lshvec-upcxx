@@ -48,7 +48,7 @@ void show_help(const char *prog, argagg::parser &argparser)
 {
     std::cout << prog << " v" << PROJECT_VERSION << "\n";
 
-    std::cout << "Usage: " << prog << " [options] <input file>\n";
+    std::cout << "Usage: " << prog << " [options] \n";
     std::cout << "Allowed options:\n";
     std::cout << argparser;
 }
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
                          "--thread",
                      },
          "thread to use (default 0)",
-         0},
+         1},
 
     }};
 
